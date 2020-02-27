@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title></title>
+		<style type="text/css">
+			* {
+				padding: 0;
+				margin: 0;
+			}
+
+			.container {
+				width: 400px;
+				height: 80vh;
+				background: #000;
+				margin: 10vh auto;
+				position: relative;
+				overflow: hidden;
+			}
+
+			.plane {
+				position: absolute;
+				width: 80px;
+				height: 60px;
+				left: calc(50% - 40px);
+				background: url(img/plane.png) 0 / 100% 100%;
+				bottom: 5px;
+			}
+
+			.bullet {
+				width: 8px;
+				height: 15px;
+				background: gold;
+				position: absolute;
+				border-radius: 50% 50% 0 0;
+				box-shadow: 0px 5px 10px #fff;
+			}
+
+			.enemy {
+				position: absolute;
+				width: 60px;
+				height: 40px;
+				background: url(img/plane.png) 0 / 100% 100%;
+				top: 0px;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="container">
+			<div class="plane"></div>
+		</div>
+
+		<script src="js/jquery-3.4.1.js" type="text/javascript" charset="utf-8"></script>
+		<script type="text/javascript">
+			$(function() {
+				
+				//函数节流
+				function throttle(fn, wait) {
+					let endTime = null;
+					return function() {
+						if (endTime && new Date() - endTime < wait) return
+						fn()
+						endTime = new Date()
+					}
+				}	
+				let fightTask = throttle(fight, 500)
+				//监听键盘事件控制操作
+				$(window).keydown(e => {
+					let offsetTop = $(".plane").position().top
+					let offsetLeft = $(".plane").position().left
+					switch (e.keyCode) {
+						case 87:
+							offsetTop -= 10
+							break;
+						case 83:
+							offsetTop += 10
+							break;
+						case 65:
+							offsetLeft -= 10
+							break;
+						case 68:
+							offsetLeft += 10
+							break;
+						case 74:
+							fightTask()
+						default:
+							break;
+					}
+					if (offsetTop < 0) offsetTop = 0
+					if (offsetLeft < 0) offsetLeft = 0
+					let maxLeft = $(".container").innerWidth() - $(".plane").innerWidth()
+					if (offsetLeft > maxLeft) offsetLeft = maxLeft
+					let maxTop = $(".container").innerHeight() - $(".plane").innerHeight()
+					if (offsetTop > maxTop) offsetTop = maxTop
+					$(".plane").css("left", offsetLeft).css("top", offsetTop)
+				})
+	                let endTime = new Date()
+				//按J生成子弹
+				function fight() {
+					let bullet = $("<div/>").addClass("bullet")
+					$(".container").append(bullet)
+					bullet.css("left", $('.plane').position().left + $('.plane').innerWidth() / 2 - bullet.innerWidth() / 2)
+					bullet.css("top", $('.plane').position().top - bullet.innerHeight())
+				}
+				// 子弹飞行定时器
+				setInterval(() => {
+					$(".bullet").each(function() {
+						$(this).css("top", $(this).position().top - 5)
+						if ($(this).position().top < 0) {
+							$(this).remove()
+						}
+					})
+				}, 10)
+				// 敌机生成的定时器
+				setInterval(() => {
+					let enemy = $("<div/>").addClass("enemy")
+					$(".container").append(enemy)
+					let maxLeft = $(".container").innerWidth() - enemy.innerWidth()
+					enemy.css('left', Math.round(Math.random()*maxLeft))
+				}, 500)
+				// 下降定时器
+				setInterval(() => {
+					$(".enemy").each(function() {
+						$(this).css("top", $(this).position().top + 5)
+						if ($(this).position().top > $(".container").innerHeight()) {
+							$(this).remove()
+						}
+					})
+				}, 50)
+				// 撞机定时器
+				setInterval(() => {
+					$(".enemy").each(function() {
+						let enemy = $(this)
+						if (collision(enemy, $('.plane')) || collision($('.plane'), enemy)) {
+							alert("游戏结束")
+							//重载页面
+							location.reload()
+						}
+						
+						$(".bullet").each(function() {
+							let bullet = $(this)
+							if (collision(enemy, bullet) || collision(bullet, enemy)) {
+								enemy.remove()
+								bullet.remove()
+							}
+						})
+					})
+				}, 100)
+			})
+
+			function collision(a, b) {
+				a = {
+					left: a.position().left,
+					right: a.position().left + a.innerWidth(),
+					top: a.position().top,
+					bottom: a.position().top + a.innerHeight()
+				}
+				b = {
+					left: b.position().left,
+					right: b.position().left + b.innerWidth(),
+					top: b.position().top,
+					bottom: b.position().top + b.innerHeight()
+				}
+				if (
+					a.left > b.left && a.left < b.right && a.top > b.top && a.top < b.bottom ||
+					a.left > b.left && a.left < b.right && a.bottom > b.top && a.bottom < b.bottom ||
+					a.right > b.left && a.right < b.right && a.bottom > b.top && a.bottom < b.bottom ||
+					a.right > b.left && a.right < b.right && a.top > b.top && a.top < b.bottom
+				) {
+					return true
+				}
+			}
+		</script>
+	</body>
+</html>
